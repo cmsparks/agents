@@ -35,6 +35,7 @@ export function useAgentChat(options: UseAgentChatOptions) {
         return requestCache.get(url)!;
       }
       const promise = fetch(new Request(url), {
+        credentials: options.credentials,
         headers: options.headers,
       }).then((res) => res.json());
       requestCache.set(url, promise);
