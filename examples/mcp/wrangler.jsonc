@@ -2,6 +2,7 @@
   "name": "mcp-agent-demo",
   "main": "src/server.ts",
   "compatibility_date": "2025-03-14",
+  "compatibility_flags": ["nodejs_compat"],
   "durable_objects": {
     "bindings": [
       {
