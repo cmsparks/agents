@@ -12,6 +12,8 @@ import {
   type ListResourcesResult,
   type ListPromptsResult,
   type ServerCapabilities,
+  type ResourceTemplate,
+  type ListResourceTemplatesResult,
 } from "@modelcontextprotocol/sdk/types.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import {
@@ -27,6 +29,7 @@ export class MCPClientConnection {
   tools: Tool[];
   prompts: Prompt[];
   resources: Resource[];
+  resourceTemplates: ResourceTemplate[];
   serverCapabilities: ServerCapabilities | undefined;
 
   constructor(
@@ -45,6 +48,7 @@ export class MCPClientConnection {
     this.tools = [];
     this.prompts = [];
     this.resources = [];
+    this.resourceTemplates = [];
   }
 
   async init() {
@@ -57,17 +61,20 @@ export class MCPClientConnection {
       );
     }
 
-    const [instructions, tools, resources, prompts] = await Promise.all([
-      this.client.getInstructions(),
-      this.registerTools(),
-      this.registerResources(),
-      this.registerPrompts(),
-    ]);
+    const [instructions, tools, resources, prompts, resourceTemplates] =
+      await Promise.all([
+        this.client.getInstructions(),
+        this.registerTools(),
+        this.registerResources(),
+        this.registerPrompts(),
+        this.registerResourceTemplates(),
+      ]);
 
     this.instructions = instructions;
     this.tools = tools;
     this.resources = resources;
     this.prompts = prompts;
+    this.resourceTemplates = resourceTemplates;
   }
 
   /**
@@ -124,11 +131,21 @@ export class MCPClientConnection {
     return this.fetchPrompts();
   }
 
+  async registerResourceTemplates(): Promise<ResourceTemplate[]> {
+    if (!this.serverCapabilities || !this.serverCapabilities.resources) {
+      return [];
+    }
+
+    return this.fetchResourceTemplates();
+  }
+
   async fetchTools() {
     let toolsAgg: Tool[] = [];
     let toolsResult: ListToolsResult = { tools: [] };
     do {
-      toolsResult = await this.client.listTools();
+      toolsResult = await this.client.listTools({
+        cursor: toolsResult.nextCursor,
+      });
       toolsAgg = toolsAgg.concat(toolsResult.tools);
     } while (toolsResult.nextCursor);
     return toolsAgg;
@@ -138,7 +155,9 @@ export class MCPClientConnection {
     let resourcesAgg: Resource[] = [];
     let resourcesResult: ListResourcesResult = { resources: [] };
     do {
-      resourcesResult = await this.client.listResources();
+      resourcesResult = await this.client.listResources({
+        cursor: resourcesResult.nextCursor,
+      });
       resourcesAgg = resourcesAgg.concat(resourcesResult.resources);
     } while (resourcesResult.nextCursor);
     return resourcesAgg;
@@ -148,23 +167,40 @@ export class MCPClientConnection {
     let promptsAgg: Prompt[] = [];
     let promptsResult: ListPromptsResult = { prompts: [] };
     do {
-      promptsResult = await this.client.listPrompts();
+      promptsResult = await this.client.listPrompts({
+        cursor: promptsResult.nextCursor,
+      });
       promptsAgg = promptsAgg.concat(promptsResult.prompts);
     } while (promptsResult.nextCursor);
     return promptsAgg;
   }
+
+  async fetchResourceTemplates() {
+    let templatesAgg: ResourceTemplate[] = [];
+    let templatesResult: ListResourceTemplatesResult = {
+      resourceTemplates: [],
+    };
+    do {
+      templatesResult = await this.client.listResourceTemplates({
+        cursor: templatesResult.nextCursor,
+      });
+      templatesAgg = templatesAgg.concat(templatesResult.resourceTemplates);
+    } while (templatesResult.nextCursor);
+    return templatesAgg;
+  }
 }
 
-type NamespacedDataTypeMap = {
-  tools: Tool[];
-  prompts: Prompt[];
-  resources: Resource[];
+export type NamespacedData = {
+  tools: (Tool & { serverName: string })[];
+  prompts: (Prompt & { serverName: string })[];
+  resources: (Resource & { serverName: string })[];
+  resourceTemplates: (ResourceTemplate & { serverName: string })[];
 };
 
-export function getNamespacedData<T extends keyof NamespacedDataTypeMap>(
+export function getNamespacedData<T extends keyof NamespacedData>(
   mcpClients: Record<string, MCPClientConnection>,
   type: T
-): NamespacedDataTypeMap[T] {
+): NamespacedData[T] {
   const sets = Object.entries(mcpClients).map(([name, conn]) => {
     return { name, data: conn[type] };
   });
@@ -174,11 +210,15 @@ export function getNamespacedData<T extends keyof NamespacedDataTypeMap>(
       return data.map((item) => {
         return {
           ...item,
+          // we add a servername so we can easily pull it out and convert between qualified<->unqualified name
+          // just in case the server name or item name includes a "."
+          serverName: `${serverName}`,
+          // qualified name
           name: `${serverName}.${item.name}`,
         };
       });
     })
     .flat();
 
-  return namespacedData as NamespacedDataTypeMap[T]; // Type assertion needed due to TS limitations with conditional return types
+  return namespacedData as NamespacedData[T]; // Type assertion needed due to TS limitations with conditional return types
 }

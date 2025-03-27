@@ -25,11 +25,18 @@ import {
   type CallToolRequest,
   CallToolResultSchema,
   CompatibilityCallToolResultSchema,
+  type ReadResourceRequest,
+  type ListResourceTemplatesRequest,
+  type GetPromptRequest,
 } from "@modelcontextprotocol/sdk/types.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { type SSEClientTransportOptions } from "@modelcontextprotocol/sdk/client/sse.js";
 import { type RequestOptions } from "@modelcontextprotocol/sdk/shared/protocol.js";
-import { MCPClientConnection, getNamespacedData } from "./lib/mcpClient";
+import {
+  MCPClientConnection,
+  getNamespacedData,
+  type NamespacedData,
+} from "./lib/mcpClient";
 
 /**
  * RPC request message from client
@@ -805,29 +812,59 @@ export class Agent<Env, State = unknown> extends Server<Env> {
   /**
    * Utility functions to get namespaced data for all MCP connections
    */
-  listTools(): Tool[] {
+  listTools(): NamespacedData["tools"] {
     return getNamespacedData(this.MCPConnections, "tools");
   }
 
-  listPrompts(): Prompt[] {
+  listPrompts(): NamespacedData["prompts"] {
     return getNamespacedData(this.MCPConnections, "prompts");
   }
 
-  listResources(): Resource[] {
+  listResources(): NamespacedData["resources"] {
     return getNamespacedData(this.MCPConnections, "resources");
   }
 
+  listResourceTemplates(): NamespacedData["resourceTemplates"] {
+    return getNamespacedData(this.MCPConnections, "resourceTemplates");
+  }
+
+  /**
+   * Namespaced versions of MCP client functions
+   */
   callTool(
-    params: CallToolRequest["params"],
+    params: CallToolRequest["params"] & { serverName: string },
     resultSchema:
       | typeof CallToolResultSchema
       | typeof CompatibilityCallToolResultSchema,
     options: RequestOptions
   ) {
-    const [serverName, toolName] = params.name.split(".");
-    return this.MCPConnections[serverName].client.callTool(
-      { ...params, name: toolName },
+    const unqualifiedName = params.name.replace(`${params.serverName}.`, "");
+    return this.MCPConnections[params.serverName].client.callTool(
+      {
+        ...params,
+        name: unqualifiedName,
+      },
       resultSchema,
+      options
+    );
+  }
+
+  readResource(
+    params: ReadResourceRequest["params"] & { serverName: string },
+    options: RequestOptions
+  ) {
+    return this.MCPConnections[params.serverName].client.readResource(
+      params,
+      options
+    );
+  }
+
+  getPrompt(
+    params: GetPromptRequest["params"] & { serverName: string },
+    options: RequestOptions
+  ) {
+    return this.MCPConnections[params.serverName].client.getPrompt(
+      params,
       options
     );
   }
