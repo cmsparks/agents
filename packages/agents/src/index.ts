@@ -22,9 +22,13 @@ import {
   type Resource,
   type Tool,
   type Prompt,
+  type CallToolRequest,
+  CallToolResultSchema,
+  CompatibilityCallToolResultSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { type SSEClientTransportOptions } from "@modelcontextprotocol/sdk/client/sse.js";
+import { type RequestOptions } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import { MCPClientConnection, getNamespacedData } from "./lib/mcpClient";
 
 /**
@@ -811,6 +815,21 @@ export class Agent<Env, State = unknown> extends Server<Env> {
 
   listResources(): Resource[] {
     return getNamespacedData(this.MCPConnections, "resources");
+  }
+
+  callTool(
+    params: CallToolRequest["params"],
+    resultSchema:
+      | typeof CallToolResultSchema
+      | typeof CompatibilityCallToolResultSchema,
+    options: RequestOptions
+  ) {
+    const [serverName, toolName] = params.name.split(".");
+    return this.MCPConnections[serverName].client.callTool(
+      { ...params, name: toolName },
+      resultSchema,
+      options
+    );
   }
 }
 
