@@ -68,10 +68,7 @@ export class MyAgent extends Agent<Env> {
       },
       // biome-ignore lint/suspicious/noExplicitAny: Not using the response type, doesn't matter
       z.any() as any,
-      { timeout: 1000 }
     );
-
-    // Echo the message back with a timestamp
     const response = `Server received "${message}" at ${new Date().toLocaleTimeString()}`;
     connection.send(`Calling tool: ${tools[0].name}`);
     connection.send(response);
