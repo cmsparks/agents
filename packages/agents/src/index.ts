@@ -17,6 +17,16 @@ export type { Connection, WSMessage, ConnectionContext } from "partyserver";
 
 import { WorkflowEntrypoint as CFWorkflowEntrypoint } from "cloudflare:workers";
 
+import {
+  type ClientCapabilities,
+  type Resource,
+  type Tool,
+  type Prompt,
+} from "@modelcontextprotocol/sdk/types.js";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { type SSEClientTransportOptions } from "@modelcontextprotocol/sdk/client/sse.js";
+import { MCPClientConnection, getNamespacedData } from "./lib/mcpClient";
+
 /**
  * RPC request message from client
  */
@@ -752,6 +762,49 @@ export class Agent<Env, State = unknown> extends Server<Env> {
   #isCallable(method: string): boolean {
     // biome-ignore lint/complexity/noBannedTypes: <explanation>
     return callableMetadata.has(this[method as keyof this] as Function);
+  }
+
+  MCPConnections: Record<string, MCPClientConnection> = {};
+
+  /**
+   * Connect to and register an MCP server
+   *
+   * @param transportConfig Transport config
+   * @param clientConfig Client config
+   * @param capabilities Client capabilities (i.e. if the client supports roots/sampling)
+   */
+  async connectToMCPServer(
+    url: URL,
+    info: ConstructorParameters<typeof Client>[0],
+    opts: {
+      transport: SSEClientTransportOptions;
+      client: ConstructorParameters<typeof Client>[1];
+      capabilities: ClientCapabilities;
+    } = { transport: {}, client: {}, capabilities: {} }
+  ) {
+    if (info.name in this.MCPConnections) {
+      throw new Error(
+        `An existing MCP client has already been registered under the name "${info.name}". The MCP client name must be unique.`
+      );
+    }
+
+    this.MCPConnections[info.name] = new MCPClientConnection(url, info, opts);
+    await this.MCPConnections[info.name].init();
+  }
+
+  /**
+   * Utility functions to get namespaced data for all MCP connections
+   */
+  listTools(): Tool[] {
+    return getNamespacedData(this.MCPConnections, "tools");
+  }
+
+  listPrompts(): Prompt[] {
+    return getNamespacedData(this.MCPConnections, "prompts");
+  }
+
+  listResources(): Resource[] {
+    return getNamespacedData(this.MCPConnections, "resources");
   }
 }
 
