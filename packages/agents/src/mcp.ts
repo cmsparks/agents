@@ -1,7 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { Agent } from "./";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { SSEEdgeTransport } from "./lib/sseEdge.ts";
+import { SSEEdgeServerTransport } from "./lib/sseEdge.ts";
 import type { Connection } from "./";
 
 // CORS helper function
@@ -87,7 +87,7 @@ export abstract class McpAgent<
    * McpAgent API
    */
   abstract server: McpServer;
-  private transport!: SSEEdgeTransport;
+  private transport!: SSEEdgeServerTransport;
   props!: Props;
   initRun = false;
 
@@ -102,7 +102,7 @@ export abstract class McpAgent<
   }
 
   async onSSE(path: string): Promise<Response> {
-    this.transport = new SSEEdgeTransport(
+    this.transport = new SSEEdgeServerTransport(
       `${path}/message`,
       this.ctx.id.toString()
     );
