@@ -153,12 +153,14 @@ export class SSEEdgeClientTransport extends SSEClientTransport {
     private url: URL,
     options: SSEClientTransportOptions
   ) {
+    // biome-ignore lint/suspicious/noExplicitAny: Overriding fetch, type doesn't matter here
     const fetchOverride = (url: any, options = {}) => {
       const workerOptions = {
         ...options,
       };
       // Remove unsupported properties
       // @ts-ignore
+      // biome-ignore lint/performance/noDelete: workaround for workers environment
       delete workerOptions.mode;
 
       // Call the original fetch with fixed options

@@ -74,6 +74,7 @@ export class MyAgent extends Agent<Env> {
           a: 1,
         },
       },
+      // biome-ignore lint/suspicious/noExplicitAny: Not using the response type, doesn't matter
       z.any() as any,
       { timeout: 1000 }
     );

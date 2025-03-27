@@ -16,9 +16,9 @@ import {
   type ListResourceTemplatesResult,
 } from "@modelcontextprotocol/sdk/types.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import {
+import type {
   SSEClientTransport,
-  type SSEClientTransportOptions,
+  SSEClientTransportOptions,
 } from "@modelcontextprotocol/sdk/client/sse.js";
 
 export class MCPClientConnection {
@@ -205,20 +205,18 @@ export function getNamespacedData<T extends keyof NamespacedData>(
     return { name, data: conn[type] };
   });
 
-  const namespacedData = sets
-    .map(({ name: serverName, data }) => {
-      return data.map((item) => {
-        return {
-          ...item,
-          // we add a servername so we can easily pull it out and convert between qualified<->unqualified name
-          // just in case the server name or item name includes a "."
-          serverName: `${serverName}`,
-          // qualified name
-          name: `${serverName}.${item.name}`,
-        };
-      });
-    })
-    .flat();
+  const namespacedData = sets.flatMap(({ name: serverName, data }) => {
+    return data.map((item) => {
+      return {
+        ...item,
+        // we add a servername so we can easily pull it out and convert between qualified<->unqualified name
+        // just in case the server name or item name includes a "."
+        serverName: `${serverName}`,
+        // qualified name
+        name: `${serverName}.${item.name}`,
+      };
+    });
+  });
 
   return namespacedData as NamespacedData[T]; // Type assertion needed due to TS limitations with conditional return types
 }
