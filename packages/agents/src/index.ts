@@ -17,21 +17,21 @@ export type { Connection, WSMessage, ConnectionContext } from "partyserver";
 
 import { WorkflowEntrypoint as CFWorkflowEntrypoint } from "cloudflare:workers";
 
-import {
-  type ClientCapabilities,
-  type Resource,
-  type Tool,
-  type Prompt,
-  type CallToolRequest,
+import type {
+  ClientCapabilities,
+  Resource,
+  Tool,
+  Prompt,
+  CallToolRequest,
   CallToolResultSchema,
   CompatibilityCallToolResultSchema,
-  type ReadResourceRequest,
-  type ListResourceTemplatesRequest,
-  type GetPromptRequest,
+  ReadResourceRequest,
+  ListResourceTemplatesRequest,
+  GetPromptRequest,
 } from "@modelcontextprotocol/sdk/types.js";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { type SSEClientTransportOptions } from "@modelcontextprotocol/sdk/client/sse.js";
-import { type RequestOptions } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import type { SSEClientTransportOptions } from "@modelcontextprotocol/sdk/client/sse.js";
+import type { RequestOptions } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import {
   MCPClientConnection,
   getNamespacedData,
