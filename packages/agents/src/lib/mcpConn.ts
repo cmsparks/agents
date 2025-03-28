@@ -189,34 +189,3 @@ export class MCPClientConnection {
     return templatesAgg;
   }
 }
-
-export type NamespacedData = {
-  tools: (Tool & { serverName: string })[];
-  prompts: (Prompt & { serverName: string })[];
-  resources: (Resource & { serverName: string })[];
-  resourceTemplates: (ResourceTemplate & { serverName: string })[];
-};
-
-export function getNamespacedData<T extends keyof NamespacedData>(
-  mcpClients: Record<string, MCPClientConnection>,
-  type: T
-): NamespacedData[T] {
-  const sets = Object.entries(mcpClients).map(([name, conn]) => {
-    return { name, data: conn[type] };
-  });
-
-  const namespacedData = sets.flatMap(({ name: serverName, data }) => {
-    return data.map((item) => {
-      return {
-        ...item,
-        // we add a servername so we can easily pull it out and convert between qualified<->unqualified name
-        // just in case the server name or item name includes a "."
-        serverName: `${serverName}`,
-        // qualified name
-        name: `${serverName}.${item.name}`,
-      };
-    });
-  });
-
-  return namespacedData as NamespacedData[T]; // Type assertion needed due to TS limitations with conditional return types
-}

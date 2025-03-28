@@ -17,27 +17,6 @@ export type { Connection, WSMessage, ConnectionContext } from "partyserver";
 
 import { WorkflowEntrypoint as CFWorkflowEntrypoint } from "cloudflare:workers";
 
-import type {
-  ClientCapabilities,
-  Resource,
-  Tool,
-  Prompt,
-  CallToolRequest,
-  CallToolResultSchema,
-  CompatibilityCallToolResultSchema,
-  ReadResourceRequest,
-  ListResourceTemplatesRequest,
-  GetPromptRequest,
-} from "@modelcontextprotocol/sdk/types.js";
-import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import type { SSEClientTransportOptions } from "@modelcontextprotocol/sdk/client/sse.js";
-import type { RequestOptions } from "@modelcontextprotocol/sdk/shared/protocol.js";
-import {
-  MCPClientConnection,
-  getNamespacedData,
-  type NamespacedData,
-} from "./lib/mcpClient";
-
 /**
  * RPC request message from client
  */
@@ -773,94 +752,6 @@ export class Agent<Env, State = unknown> extends Server<Env> {
   #isCallable(method: string): boolean {
     // biome-ignore lint/complexity/noBannedTypes: <explanation>
     return callableMetadata.has(this[method as keyof this] as Function);
-  }
-
-  MCPConnections: Record<string, MCPClientConnection> = {};
-
-  /**
-   * Connect to and register an MCP server
-   *
-   * @param transportConfig Transport config
-   * @param clientConfig Client config
-   * @param capabilities Client capabilities (i.e. if the client supports roots/sampling)
-   */
-  async connectToMCPServer(
-    url: URL,
-    info: ConstructorParameters<typeof Client>[0],
-    opts: {
-      transport: SSEClientTransportOptions;
-      client: ConstructorParameters<typeof Client>[1];
-      capabilities: ClientCapabilities;
-    } = { transport: {}, client: {}, capabilities: {} }
-  ) {
-    if (info.name in this.MCPConnections) {
-      throw new Error(
-        `An existing MCP client has already been registered under the name "${info.name}". The MCP client name must be unique.`
-      );
-    }
-
-    this.MCPConnections[info.name] = new MCPClientConnection(url, info, opts);
-    await this.MCPConnections[info.name].init();
-  }
-
-  /**
-   * Utility functions to get namespaced data for all MCP connections
-   */
-  listTools(): NamespacedData["tools"] {
-    return getNamespacedData(this.MCPConnections, "tools");
-  }
-
-  listPrompts(): NamespacedData["prompts"] {
-    return getNamespacedData(this.MCPConnections, "prompts");
-  }
-
-  listResources(): NamespacedData["resources"] {
-    return getNamespacedData(this.MCPConnections, "resources");
-  }
-
-  listResourceTemplates(): NamespacedData["resourceTemplates"] {
-    return getNamespacedData(this.MCPConnections, "resourceTemplates");
-  }
-
-  /**
-   * Namespaced versions of MCP client functions
-   */
-  callTool(
-    params: CallToolRequest["params"] & { serverName: string },
-    resultSchema:
-      | typeof CallToolResultSchema
-      | typeof CompatibilityCallToolResultSchema,
-    options: RequestOptions
-  ) {
-    const unqualifiedName = params.name.replace(`${params.serverName}.`, "");
-    return this.MCPConnections[params.serverName].client.callTool(
-      {
-        ...params,
-        name: unqualifiedName,
-      },
-      resultSchema,
-      options
-    );
-  }
-
-  readResource(
-    params: ReadResourceRequest["params"] & { serverName: string },
-    options: RequestOptions
-  ) {
-    return this.MCPConnections[params.serverName].client.readResource(
-      params,
-      options
-    );
-  }
-
-  getPrompt(
-    params: GetPromptRequest["params"] & { serverName: string },
-    options: RequestOptions
-  ) {
-    return this.MCPConnections[params.serverName].client.getPrompt(
-      params,
-      options
-    );
   }
 }
 
