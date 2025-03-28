@@ -3,18 +3,6 @@
   "main": "src/server.ts",
   "compatibility_date": "2025-03-14",
   "compatibility_flags": ["nodejs_compat"],
-  "vars": {
-    "MCP_SERVERS": [
-      {
-        "host": "http://localhost:5174",
-        "info": { "name": "mcp-server-1", "version": "1.0.0" },
-      },
-      {
-        "host": "http://localhost:5174",
-        "info": { "name": "mcp-server-2", "version": "1.0.0" },
-      },
-    ],
-  },
   "durable_objects": {
     "bindings": [
       {

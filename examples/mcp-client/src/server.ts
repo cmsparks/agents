@@ -4,14 +4,16 @@ import {
   type AgentNamespace,
   type Connection,
 } from "agents";
+import { MCPClientManager } from "agents/mcp-client";
 import { z } from "zod";
 
 type Env = {
-  MCP_SERVERS: { host: string; info: { name: string; version: string } }[];
   MyAgent: AgentNamespace<MyAgent>;
 };
 
 export class MyAgent extends Agent<Env> {
+  private mcp = new MCPClientManager();
+
   constructor(
     public ctx: DurableObjectState,
     public env: Env
@@ -21,27 +23,15 @@ export class MyAgent extends Agent<Env> {
 
   async onStart(): Promise<void> {
     console.log("Registering servers");
-    await Promise.all(
-      this.env.MCP_SERVERS.map((server) => {
-        return this.connectToMCPServer(
-          new URL(`${server.host}/sse`),
-          server.info
-          /* If using bearer auth
-          {
-            transport: {
-              requestInit: {
-                headers: {
-                  "Authorization": "Bearer foobar"
-                }
-              }
-            },
-            client: {},
-            capabilities: {},
-          }
-          */
-        );
-      })
-    );
+    // connect to the same server twice, which ensures that namespacing works as expected
+    this.mcp.connectToServer(new URL("http://localhost:5174/sse"), {
+      name: "mcp-server-1",
+      version: "1.0.0",
+    });
+    this.mcp.connectToServer(new URL("http://localhost:5174/sse"), {
+      name: "mcp-server-2",
+      version: "1.0.0",
+    });
     console.log("Registered servers");
   }
 
@@ -49,13 +39,15 @@ export class MyAgent extends Agent<Env> {
     console.log("Client connected:", connection.id);
     connection.send(`Welcome! You are connected with ID: ${connection.id}`);
     connection.send(
-      `The following MCP servers are connected: ${Object.keys(this.MCPConnections).join(", ")}`
+      `The following MCP servers are connected: ${Object.keys(this.mcp.mcpConnections).join(", ")}`
     );
-    connection.send(`Available tools: ${JSON.stringify(this.listTools())}`);
+    connection.send(`Available tools: ${JSON.stringify(this.mcp.listTools())}`);
     connection.send(
-      `Available resources: ${JSON.stringify(this.listResources())}`
+      `Available resources: ${JSON.stringify(this.mcp.listResources())}`
     );
-    connection.send(`Available prompts: ${JSON.stringify(this.listPrompts())}`);
+    connection.send(
+      `Available prompts: ${JSON.stringify(this.mcp.listPrompts())}`
+    );
   }
 
   onClose(connection: Connection) {
@@ -66,8 +58,8 @@ export class MyAgent extends Agent<Env> {
     console.log(`Message from client ${connection.id}:`, message);
 
     // call a tool as a test
-    const tools = this.listTools();
-    const res = await this.callTool(
+    const tools = this.mcp.listTools();
+    const res = await this.mcp.callTool(
       {
         ...tools[0],
         arguments: {

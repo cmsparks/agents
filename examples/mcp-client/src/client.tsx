@@ -18,7 +18,6 @@ function App() {
 
   const agent = useAgent({
     agent: "my-agent",
-    host: "http://localhost:8787",
     onMessage: (message) => {
       const newMessage: Message = {
         id: Math.random().toString(36).substring(7),

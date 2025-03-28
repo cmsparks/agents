@@ -47,6 +47,11 @@
       "types": "./dist/mcp.d.ts",
       "require": "./dist/mcp.js",
       "import": "./dist/mcp.js"
+    },
+    "./mcp-client": {
+      "types": "./dist/mcp-client.d.ts",
+      "require": "./dist/mcp-client.js",
+      "import": "./dist/mcp-client.js"
     }
   },
   "keywords": [],
