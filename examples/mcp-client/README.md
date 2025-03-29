@@ -4,7 +4,7 @@ A minimal example showing an `McpAgent` as an MCP Client/Host running in Wrangle
 
 ## Instructions
 
-First, start an MCP server. A simple example can be found in `examples/mcp`, which already has valid binding setup. Set the `MCP_SERVERS` binding variables.
+First, start an MCP server. A simple example can be found in `examples/mcp`, which already has valid binding setup.
 
 ```sh
 npm install
