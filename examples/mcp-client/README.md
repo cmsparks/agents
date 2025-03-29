@@ -1,6 +1,6 @@
 # Mcp Client demo using Agents
 
-A minimal example showing an `McpAgent` as an MCP Client/Host running in Wrangler.
+A minimal example showing an `Agent` as an MCP Client.
 
 ## Instructions
 
