@@ -3,6 +3,9 @@
   "main": "src/server.ts",
   "compatibility_date": "2025-03-14",
   "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "public",
+  },
   "durable_objects": {
     "bindings": [
       {

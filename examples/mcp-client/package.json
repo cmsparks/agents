@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "vite dev --port 8787"
+    "start": "vite dev"
   },
   "keywords": [],
   "author": "",

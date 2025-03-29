@@ -52,7 +52,7 @@ function App() {
     try {
       const response = await agentFetch({
         agent: "my-agent",
-        host: "http://localhost:8787",
+        host: window.location.host,
       });
       const data = await response.text();
       const newMessage: Message = {

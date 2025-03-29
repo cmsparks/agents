@@ -11,4 +11,4 @@ npm install
 npm start
 ```
 
-You should have the frontend running on http://localhost:5175/. It should list out all the tools, prompts, and resources available.
+Tap "O + enter" to open the front end. It should list out all the tools, prompts, and resources available.

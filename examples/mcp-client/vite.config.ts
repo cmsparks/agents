@@ -10,7 +10,4 @@ export default defineConfig({
       inspectorPort: 9230,
     }),
   ],
-  server: {
-    port: 5175,
-  },
 });

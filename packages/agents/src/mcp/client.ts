@@ -1,4 +1,4 @@
-import { MCPClientConnection } from "./lib/mcpConn";
+import { MCPClientConnection } from "./client-connection";
 
 import type {
   ClientCapabilities,

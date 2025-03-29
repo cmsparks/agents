@@ -4,7 +4,7 @@ import {
   type AgentNamespace,
   type Connection,
 } from "agents";
-import { MCPClientManager } from "agents/mcp-client";
+import { MCPClientManager } from "agents/mcp/client";
 import { z } from "zod";
 
 type Env = {
@@ -24,11 +24,11 @@ export class MyAgent extends Agent<Env> {
   async onStart(): Promise<void> {
     console.log("Registering servers");
     // connect to the same server twice, which ensures that namespacing works as expected
-    this.mcp.connectToServer(new URL("http://localhost:5174/sse"), {
+    await this.mcp.connectToServer(new URL("http://localhost:5174/sse"), {
       name: "mcp-server-1",
       version: "1.0.0",
     });
-    this.mcp.connectToServer(new URL("http://localhost:5174/sse"), {
+    await this.mcp.connectToServer(new URL("http://localhost:5174/sse"), {
       name: "mcp-server-2",
       version: "1.0.0",
     });

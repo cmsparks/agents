@@ -1,4 +1,4 @@
-import { SSEEdgeClientTransport } from "./sseEdge";
+import { SSEEdgeClientTransport } from "./sse-edge";
 
 import {
   ToolListChangedNotificationSchema,
