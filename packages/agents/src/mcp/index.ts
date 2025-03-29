@@ -1,4 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
+<<<<<<< HEAD
 import { Agent } from "../";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Connection } from "../";
@@ -7,6 +8,12 @@ import { JSONRPCMessageSchema } from "@modelcontextprotocol/sdk/types.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 
 const MAXIMUM_MESSAGE_SIZE = 4 * 1024 * 1024; // 4MB
+=======
+import { Agent } from "../index.ts";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { SSEEdgeServerTransport } from "./sse-edge.ts";
+import type { Connection } from "../index.ts";
+>>>>>>> cc65b8d (move some files around)
 
 // CORS helper function
 function handleCORS(
@@ -36,6 +43,7 @@ interface CORSOptions {
   maxAge?: number;
 }
 
+<<<<<<< HEAD
 class McpTransport implements Transport {
   onclose?: () => void;
   onerror?: (error: Error) => void;
@@ -79,32 +87,48 @@ class McpTransport implements Transport {
   }
 }
 
+=======
+>>>>>>> cc65b8d (move some files around)
 export abstract class McpAgent<
   Env = unknown,
   State = unknown,
   Props extends Record<string, unknown> = Record<string, unknown>,
 > extends DurableObject<Env> {
+<<<<<<< HEAD
   #status: "zero" | "starting" | "started" = "zero";
   #transport?: McpTransport;
   #connected = false;
 
+=======
+>>>>>>> cc65b8d (move some files around)
   /**
    * Since McpAgent's _aren't_ yet real "Agents" (they route differently, don't support
    * websockets, don't support hibernation), let's only expose a couple of the methods
    * to the outer class: initialState/state/setState/onStateUpdate/sql
    */
   readonly #agent: Agent<Env, State>;
+<<<<<<< HEAD
 
+=======
+>>>>>>> cc65b8d (move some files around)
   protected constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     const self = this;
 
     // Since McpAgent's _aren't_ yet real "Agents" (they route differently, they don't support
+<<<<<<< HEAD
     // scheduling etc, let's only expose a couple of the methods
     // to the outer class for now.
     this.#agent = new (class extends Agent<Env, State> {
       static options = {
         hibernate: true,
+=======
+    // websockets, hibernation, scheduling etc), let's only expose a couple of the methods
+    // to the outer class for now.
+    this.#agent = new (class extends Agent<Env, State> {
+      static options = {
+        hibernate: false,
+>>>>>>> cc65b8d (move some files around)
       };
 
       onStateUpdate(state: State | undefined, source: Connection | "server") {
@@ -134,6 +158,7 @@ export abstract class McpAgent<
   onStateUpdate(state: State | undefined, source: Connection | "server") {
     // override this to handle state updates
   }
+<<<<<<< HEAD
   async onStart() {
     this.props = (await this.ctx.storage.get("props")) as Props;
     this.init?.();
@@ -142,18 +167,27 @@ export abstract class McpAgent<
     this.#transport = new McpTransport(() => this.getWebSocket());
     await this.server.connect(this.#transport);
   }
+=======
+>>>>>>> cc65b8d (move some files around)
 
   /**
    * McpAgent API
    */
   abstract server: McpServer;
+<<<<<<< HEAD
+=======
+  private transport!: SSEEdgeServerTransport;
+>>>>>>> cc65b8d (move some files around)
   props!: Props;
   initRun = false;
 
   abstract init(): Promise<void>;
 
   async _init(props: Props) {
+<<<<<<< HEAD
     await this.ctx.storage.put("props", props);
+=======
+>>>>>>> cc65b8d (move some files around)
     this.props = props;
     if (!this.initRun) {
       this.initRun = true;
@@ -161,6 +195,7 @@ export abstract class McpAgent<
     }
   }
 
+<<<<<<< HEAD
   async #initialize(): Promise<void> {
     await this.ctx.blockConcurrencyWhile(async () => {
       this.#status = "starting";
@@ -308,6 +343,19 @@ export abstract class McpAgent<
     }
     this.#transport?.onclose?.();
     this.#connected = false;
+=======
+  async onSSE(path: string): Promise<Response> {
+    this.transport = new SSEEdgeServerTransport(
+      `${path}/message`,
+      this.ctx.id.toString()
+    );
+    await this.server.connect(this.transport);
+    return this.transport.sseResponse;
+  }
+
+  async onMCPMessage(request: Request): Promise<Response> {
+    return this.transport.handlePostMessage(request);
+>>>>>>> cc65b8d (move some files around)
   }
 
   static mount(
@@ -336,6 +384,7 @@ export abstract class McpAgent<
         const url = new URL(request.url);
         const namespace = env[binding];
 
+<<<<<<< HEAD
         // Handle SSE connections
         if (request.method === "GET" && basePattern.test(url)) {
           // Use a session ID if one is passed in, or create a unique
@@ -446,6 +495,30 @@ export abstract class McpAgent<
         }
 
         // Handle MCP messages
+=======
+        if (request.method === "GET" && basePattern.test(url)) {
+          const object = namespace.get(namespace.newUniqueId());
+          // @ts-ignore
+          await object._init(ctx.props);
+          const response = await object.onSSE(path);
+
+          // Convert headers to a plain object
+          const headerObj: Record<string, string> = {};
+          response.headers.forEach((value, key) => {
+            headerObj[key] = value;
+          });
+          headerObj["Access-Control-Allow-Origin"] = corsOptions?.origin || "*";
+
+          // Clone the response to get a new body stream
+          // const clonedResponse = response.clone();
+          return new Response(response.body as unknown as BodyInit, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: headerObj,
+          });
+        }
+
+>>>>>>> cc65b8d (move some files around)
         if (request.method === "POST" && messagePattern.test(url)) {
           const sessionId = url.searchParams.get("sessionId");
           if (!sessionId) {
@@ -454,6 +527,7 @@ export abstract class McpAgent<
               { status: 400 }
             );
           }
+<<<<<<< HEAD
 
           // Get the Durable Object
           const object = namespace.get(namespace.idFromString(sessionId));
@@ -470,11 +544,26 @@ export abstract class McpAgent<
             "Access-Control-Allow-Origin",
             corsOptions?.origin || "*"
           );
+=======
+          const object = namespace.get(namespace.idFromString(sessionId));
+          const response = await object.onMCPMessage(request);
+
+          // Convert headers to a plain object
+          const headerObj: Record<string, string> = {};
+          response.headers.forEach((value, key) => {
+            headerObj[key] = value;
+          });
+          headerObj["Access-Control-Allow-Origin"] = corsOptions?.origin || "*";
+>>>>>>> cc65b8d (move some files around)
 
           return new Response(response.body as unknown as BodyInit, {
             status: response.status,
             statusText: response.statusText,
+<<<<<<< HEAD
             headers,
+=======
+            headers: headerObj,
+>>>>>>> cc65b8d (move some files around)
           });
         }
 
