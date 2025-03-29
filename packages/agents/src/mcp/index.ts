@@ -1,8 +1,8 @@
 import { DurableObject } from "cloudflare:workers";
-import { Agent } from "../index.ts";
+import { Agent } from "../";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { SSEEdgeServerTransport } from "./sse-edge.ts";
-import type { Connection } from "../index.ts";
+import { SSEEdgeServerTransport } from "./sse-edge";
+import type { Connection } from "../";
 
 // CORS helper function
 function handleCORS(
