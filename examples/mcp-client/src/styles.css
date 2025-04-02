@@ -63,10 +63,13 @@ button:hover {
 }
 
 .message {
-  padding: 12px 16px;
+  padding: 8px 8px;
   margin: 8px 0;
   border-radius: 8px;
-  max-width: 80%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
 }
 
 .incoming-message {
@@ -92,12 +95,28 @@ button:hover {
   gap: 8px;
   color: #666;
   font-size: 14px;
-  margin-bottom: 16px;
+  margin-top: 6px;
 }
 
 .status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  background-color: #666;
+}
+
+.status-dot.connected {
   background-color: #22c55e;
+}
+
+.code {
+  white-space: "pre-wrap";
+  font-family: monospace;
+  background-color: #f0f0f0;
+  padding: 8px;
+  margin: 8px 0;
+}
+
+.mcp-servers {
+  margin-top: 8px;
 }
