@@ -17,14 +17,12 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type {
-  SSEClientTransport,
   SSEClientTransportOptions,
 } from "@modelcontextprotocol/sdk/client/sse.js";
 
 export class MCPClientConnection {
   client: Client;
-  transport: SSEClientTransport;
-  connected: boolean;
+  connectionState: 'authenticating' | 'connecting' | 'ready' | "discovering" | 'failed';
   instructions?: string;
   tools: Tool[];
   prompts: Prompt[];
@@ -33,31 +31,51 @@ export class MCPClientConnection {
   serverCapabilities: ServerCapabilities | undefined;
 
   constructor(
-    url: URL,
+    private url: URL,
     private info: ConstructorParameters<typeof Client>[0],
-    opts: {
+    private opts: {
       transport: SSEClientTransportOptions;
       client: ConstructorParameters<typeof Client>[1];
       capabilities: ClientCapabilities;
     } = { transport: {}, client: {}, capabilities: {} }
   ) {
-    this.transport = new SSEEdgeClientTransport(url, opts.transport);
     this.client = new Client(info, opts.client);
     this.client.registerCapabilities(opts.capabilities);
-    this.connected = false;
+    this.connectionState = 'connecting';
     this.tools = [];
     this.prompts = [];
     this.resources = [];
     this.resourceTemplates = [];
   }
 
-  async init() {
-    await this.client.connect(this.transport);
+  /**
+   * Initialize a client connection
+   * 
+   * @param code Optional OAuth code to initialize the connection with if auth hasn't been initialized
+   * @returns 
+   */
+  async init(code?: string) {
+    try {
+      const transport = new SSEEdgeClientTransport(this.url, this.opts.transport);
+      if (code) {
+        await transport.finishAuth(code)
+      }
+      await this.client.connect(transport);
+    } catch (e: any) {
+      if (e.toString().includes("Unauthorized")) {
+        // unauthorized, we should wait for the user to authenticate
+        this.connectionState = "authenticating"
+        return
+      }
+      this.connectionState = "failed"
+    }
+
+    this.connectionState = "discovering"
 
     this.serverCapabilities = await this.client.getServerCapabilities();
     if (!this.serverCapabilities) {
       throw new Error(
-        `The MCP Server ${this.info.name} failed to return server capabilities`
+        `The MCP Server failed to return server capabilities`
       );
     }
 
@@ -75,6 +93,8 @@ export class MCPClientConnection {
     this.resources = resources;
     this.prompts = prompts;
     this.resourceTemplates = resourceTemplates;
+    
+    this.connectionState = "ready"
   }
 
   /**

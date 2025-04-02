@@ -14,6 +14,12 @@
       },
     ],
   },
+  "kv_namespaces": [
+    {
+      "binding": "CLIENT_OAUTH_NAMESPACE",
+      "id": "TODO"
+    }
+  ],
   "migrations": [
     {
       "tag": "v1",
