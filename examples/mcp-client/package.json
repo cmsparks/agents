@@ -8,11 +8,5 @@
     "deploy": "wrangler deploy"
   },
   "keywords": [],
-  "author": "",
-  "dependencies": {
-    "mcp-remote": "^0.0.10"
-  },
-  "devDependencies": {
-    "@modelcontextprotocol/inspector": "^0.7.0"
-  }
+  "author": ""
 }
