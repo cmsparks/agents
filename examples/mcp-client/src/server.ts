@@ -8,7 +8,7 @@ import type {
 
 type Env = {
   MyAgent: AgentNamespace<MyAgent>;
-  ENV: "production" | "development";
+  HOST: string;
 };
 
 export type Server = {
@@ -41,12 +41,8 @@ export class MyAgent extends Agent<Env, State> {
   }
 
   async onStart(): Promise<void> {
-    const baseUrl =
-      this.env.ENV === "production"
-        ? "https://mcp-client.cmsparks.workers.dev"
-        : "http://localhost:5173";
     this.mcp_ = new MCPClientManager("my-agent", "1.0.0", {
-      baseCallbackUri: `${baseUrl}/agents/my-agent/${this.name}/callback`,
+      baseCallbackUri: `${this.env.HOST}/agents/my-agent/${this.name}/callback`,
       storage: this.ctx.storage,
     });
   }

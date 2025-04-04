@@ -1,1 +1,1 @@
-ENV=development
+HOST=http://localhost:5173

@@ -68,28 +68,28 @@ function App() {
   };
 
   return (
-    <div className="chat-container">
+    <div className="container">
       <div className="status-indicator">
         <div className={`status-dot ${isConnected ? "connected" : ""}`} />
         {isConnected ? "Connected to server" : "Disconnected"}
       </div>
 
       <div className="mcp-servers">
-        <form className="message-form" onSubmit={handleMcpSubmit}>
+        <form className="mcp-form" onSubmit={handleMcpSubmit}>
           <input
             type="text"
             ref={mcpInputRef}
-            className="message-input"
+            className="mcp-input"
             placeholder="MCP Server URL"
           />
           <button type="submit">Add MCP Server</button>
         </form>
       </div>
 
-      <div className="messages-section">
+      <div className="mcp-section">
         <h2>MCP Servers</h2>
         {Object.entries(mcpState.servers).map(([id, server]) => (
-          <div key={id} className={"message incoming-message"}>
+          <div key={id} className={"mcp-server"}>
             <div>
               <div>URL: {server.url}</div>
               <div className="status-indicator">
@@ -117,7 +117,7 @@ function App() {
         {mcpState.tools.map((tool) => (
           <div key={`${tool.name}-${tool.serverId}`}>
             <b>{tool.name}</b>
-            <div className="code">{JSON.stringify(tool)}</div>
+            <pre className="code">{JSON.stringify(tool, null, 2)}</pre>
           </div>
         ))}
 
@@ -125,7 +125,7 @@ function App() {
         {mcpState.prompts.map((prompt) => (
           <div key={`${prompt.name}-${prompt.serverId}`}>
             <b>{prompt.name}</b>
-            <div className="code">{JSON.stringify(prompt)}</div>
+            <pre className="code">{JSON.stringify(prompt, null, 2)}</pre>
           </div>
         ))}
 
@@ -133,7 +133,7 @@ function App() {
         {mcpState.resources.map((resource) => (
           <div key={`${resource.name}-${resource.serverId}`}>
             <b>{resource.name}</b>
-            <div className="code">{JSON.stringify(resource)}</div>
+            <pre className="code">{JSON.stringify(resource, null, 2)}</pre>
           </div>
         ))}
       </div>

@@ -7,7 +7,7 @@
     "directory": "dist/client",
   },
   "vars": {
-    "ENV": "production",
+    "HOST": "<DEPLOYED_HOSTNAME>",
   },
   "durable_objects": {
     "bindings": [

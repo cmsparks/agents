@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "start": "vite dev",
-    "deploy": "vite build && wrangler deploy"
+    "build": "vite build",
+    "deploy": "wrangler deploy"
   },
   "keywords": [],
   "author": "",
