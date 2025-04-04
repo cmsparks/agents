@@ -4,7 +4,10 @@
   "compatibility_date": "2025-03-14",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
-    "directory": "public",
+    "directory": "dist/client",
+  },
+  "vars": {
+    "ENV": "production",
   },
   "durable_objects": {
     "bindings": [
@@ -14,16 +17,15 @@
       },
     ],
   },
-  "kv_namespaces": [
-    {
-      "binding": "CLIENT_OAUTH_NAMESPACE",
-      "id": "TODO",
-    },
-  ],
   "migrations": [
     {
       "tag": "v1",
       "new_sqlite_classes": ["MyAgent"],
     },
   ],
+  "observability": {
+    "logs": {
+      "enabled": true,
+    },
+  },
 }

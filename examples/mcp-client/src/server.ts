@@ -1,10 +1,4 @@
-import {
-  Agent,
-  routeAgentRequest,
-  type AgentNamespace,
-  type Connection,
-  type ConnectionContext,
-} from "agents";
+import { Agent, routeAgentRequest, type AgentNamespace } from "agents";
 import { MCPClientManager } from "agents/mcp/client";
 import type {
   Tool,
@@ -14,7 +8,7 @@ import type {
 
 type Env = {
   MyAgent: AgentNamespace<MyAgent>;
-  CLIENT_OAUTH_NAMESPACE: KVNamespace;
+  ENV: "production" | "development";
 };
 
 export type Server = {
@@ -47,12 +41,14 @@ export class MyAgent extends Agent<Env, State> {
   }
 
   async onStart(): Promise<void> {
+    const baseUrl =
+      this.env.ENV === "production"
+        ? "https://mcp-client.cmsparks.workers.dev"
+        : "http://localhost:5173";
     this.mcp_ = new MCPClientManager("my-agent", "1.0.0", {
-      baseCallbackUri: `http://localhost:5173/agents/my-agent/${this.name}/callback`,
-      kv: this.env.CLIENT_OAUTH_NAMESPACE,
+      baseCallbackUri: `${baseUrl}/agents/my-agent/${this.name}/callback`,
+      storage: this.ctx.storage,
     });
-    this.refreshServers();
-    this.refreshTools();
   }
 
   setServerState(id: string, state: Server) {
@@ -65,23 +61,7 @@ export class MyAgent extends Agent<Env, State> {
     });
   }
 
-  async refreshServers(): Promise<void> {
-    for (const [id, server] of Object.entries(this.state.servers)) {
-      try {
-        const { authUrl } = await this.mcp.connect(server.url, { id });
-        this.setServerState(id, {
-          url: server.url,
-          authUrl,
-          state: this.mcp.mcpConnections[id].connectionState,
-        });
-      } catch (e) {
-        console.log("Failed to initialize server: ", server);
-        console.log(e);
-      }
-    }
-  }
-
-  async refreshTools() {
+  async refreshServerData() {
     this.setState({
       ...this.state,
       prompts: this.mcp.listPrompts(),
@@ -100,17 +80,13 @@ export class MyAgent extends Agent<Env, State> {
 
   async addMcpServer(url: string): Promise<string> {
     console.log(`Registering server: ${url}`);
-    const { id, authUrl } = await this.mcp.connect(url, {});
+    const { id, authUrl } = await this.mcp.connect(url);
     this.setServerState(id, {
       url,
       authUrl,
       state: this.mcp.mcpConnections[id].connectionState,
     });
     return authUrl ?? "";
-  }
-
-  async onConnect(connection: Connection<unknown>, ctx: ConnectionContext) {
-    await this.refreshTools();
   }
 
   async onRequest(request: Request): Promise<Response> {
@@ -121,7 +97,7 @@ export class MyAgent extends Agent<Env, State> {
           url: this.state.servers[serverId].url,
           state: this.mcp.mcpConnections[serverId].connectionState,
         });
-        await this.refreshTools();
+        await this.refreshServerData();
         // Hack: autoclosing window because a redirect fails for some reason
         // return Response.redirect('http://localhost:5173/', 301)
         return new Response("<script>window.close();</script>", {
@@ -134,21 +110,14 @@ export class MyAgent extends Agent<Env, State> {
       }
     }
 
-    if (request.url.endsWith("add-mcp") && request.method === "POST") {
+    const reqUrl = new URL(request.url);
+    if (reqUrl.pathname.endsWith("add-mcp") && request.method === "POST") {
       const mcpServer = (await request.json()) as { url: string };
       const authUrl = await this.addMcpServer(mcpServer.url);
       return new Response(authUrl, { status: 200 });
     }
 
-    const timestamp = new Date().toLocaleTimeString();
-    return new Response(
-      `Server time: ${timestamp} - Your request has been processed!`,
-      {
-        headers: {
-          "Content-Type": "text/plain",
-        },
-      }
-    );
+    return new Response("Not found", { status: 404 });
   }
 }
 

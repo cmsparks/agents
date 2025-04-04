@@ -9,15 +9,18 @@ import type {
 // A slight extension to the standard OAuthClientProvider interface because `redirectToAuthorization` doesn't give us the interface we need
 export interface AgentsOAuthProvider extends OAuthClientProvider {
   authUrl: string | undefined;
+  clientId: string | undefined;
 }
 
-export class KVOAuthClientProvider implements AgentsOAuthProvider {
+export class DurableObjectOAuthClientProvider implements AgentsOAuthProvider {
   private authUrl_: string | undefined;
+
   constructor(
-    private kvNamespace: KVNamespace,
+    private storage: DurableObjectStorage,
     private clientName: string,
     private sessionId: string,
-    private redirectUrl_: string
+    private redirectUrl_: string,
+    public clientId_?: string
   ) {}
 
   get redirectUrl(): string {
@@ -35,19 +38,32 @@ export class KVOAuthClientProvider implements AgentsOAuthProvider {
     };
   }
 
-  get keyPrefix() {
-    return `/${this.clientName}/${this.sessionId}`;
+  get clientId() {
+    if (!this.clientId_) {
+      throw new Error("no clientId");
+    }
+    return this.clientId_;
   }
 
-  get clientInfoKey() {
-    return `${this.keyPrefix}/client_info`;
+  set clientId(clientId_: string) {
+    this.clientId_ = clientId_;
+  }
+
+  keyPrefix(clientId: string) {
+    return `/${this.clientName}/${this.sessionId}/${clientId}`;
+  }
+
+  clientInfoKey(clientId: string) {
+    return `${this.keyPrefix(clientId)}/client_info/`;
   }
 
   async clientInformation(): Promise<OAuthClientInformation | undefined> {
+    if (!this.clientId_) {
+      return undefined;
+    }
     return (
-      (await this.kvNamespace.get<OAuthClientInformation>(
-        this.clientInfoKey,
-        "json"
+      (await this.storage.get<OAuthClientInformation>(
+        this.clientInfoKey(this.clientId)
       )) ?? undefined
     );
   }
@@ -55,30 +71,29 @@ export class KVOAuthClientProvider implements AgentsOAuthProvider {
   async saveClientInformation(
     clientInformation: OAuthClientInformationFull
   ): Promise<void> {
-    // We only set these once, because for some reason the client sends the server multiple requests for this info
-    if ((await this.clientInformation()) === undefined) {
-      await this.kvNamespace.put(
-        this.clientInfoKey,
-        JSON.stringify(clientInformation)
-      );
-    }
+    await this.storage.put(
+      this.clientInfoKey(clientInformation.client_id),
+      clientInformation
+    );
+    this.clientId = clientInformation.client_id;
   }
 
-  get tokenKey() {
-    return `${this.keyPrefix}/token`;
+  tokenKey(clientId: string) {
+    return `${this.keyPrefix(clientId)}/token`;
   }
 
   async tokens(): Promise<OAuthTokens | undefined> {
-    const tokens =
-      (await this.kvNamespace.get<OAuthTokens>(this.tokenKey, "json")) ??
-      undefined;
-    return tokens;
+    if (!this.clientId_) {
+      return undefined;
+    }
+    return (
+      (await this.storage.get<OAuthTokens>(this.tokenKey(this.clientId))) ??
+      undefined
+    );
   }
 
   async saveTokens(tokens: OAuthTokens): Promise<void> {
-    if ((await this.tokens()) === undefined) {
-      await this.kvNamespace.put(this.tokenKey, JSON.stringify(tokens));
-    }
+    await this.storage.put(this.tokenKey(this.clientId), tokens);
   }
 
   get authUrl() {
@@ -90,25 +105,26 @@ export class KVOAuthClientProvider implements AgentsOAuthProvider {
    * and require user interact to initiate the redirect flow
    */
   async redirectToAuthorization(authUrl: URL): Promise<void> {
-    if (this.authUrl_ === undefined) {
-      this.authUrl_ = authUrl.toString();
+    // We want to track the client ID in state here because the typescript SSE client sometimes does
+    // a dynamic client registration AFTER generating this redirect URL.
+    const client_id = authUrl.searchParams.get("client_id");
+    if (client_id) {
+      authUrl.searchParams.append("state", client_id);
     }
+    this.authUrl_ = authUrl.toString();
   }
 
-  get codeVerifierKey() {
-    return `${this.keyPrefix}/code_verifier`;
+  codeVerifierKey(clientId: string) {
+    return `${this.keyPrefix(clientId)}/code_verifier`;
   }
 
   async saveCodeVerifier(verifier: string): Promise<void> {
-    if (!(await this.kvNamespace.get(this.codeVerifierKey, "text"))) {
-      await this.kvNamespace.put(this.codeVerifierKey, verifier);
-    }
+    await this.storage.put(this.codeVerifierKey(this.clientId), verifier);
   }
 
   async codeVerifier(): Promise<string> {
-    const codeVerifier = await this.kvNamespace.get(
-      this.codeVerifierKey,
-      "text"
+    const codeVerifier = await this.storage.get<string>(
+      this.codeVerifierKey(this.clientId)
     );
     if (!codeVerifier) {
       throw new Error("No code verifier found");

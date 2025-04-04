@@ -16,9 +16,9 @@ import type { SSEClientTransportOptions } from "@modelcontextprotocol/sdk/client
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { RequestOptions } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import {
-  KVOAuthClientProvider,
+  DurableObjectOAuthClientProvider,
   type AgentsOAuthProvider,
-} from "./kv-oauth-client-provider";
+} from "./do-oauth-client-provider";
 
 /**
  * Utility class that aggregates multiple MCP clients into one
@@ -29,12 +29,12 @@ export class MCPClientManager {
   /**
    * @param name Name of the MCP client
    * @param version Version of the MCP Client
-   * @param auth Auth paramters if being used to create a KVOAuthClientProvider
+   * @param auth Auth paramters if being used to create a DurableObjectOAuthClientProvider
    */
   constructor(
     private name: string,
     private version: string,
-    private auth?: { baseCallbackUri: string; kv: KVNamespace }
+    private auth?: { baseCallbackUri: string; storage: DurableObjectStorage }
   ) {}
 
   /**
@@ -47,8 +47,13 @@ export class MCPClientManager {
   async connect(
     url: string,
     opts: {
-      // setting `id` allows us to reconnect to an already authenticated server
-      id?: string;
+      // Allows you to reconnect to a server (in the case of a auth reconnect)
+      // Doesn't handle session reconnection
+      reconnect?: {
+        id: string;
+        oauthClientId?: string;
+        oauthCode?: string;
+      };
       // we're overriding authProvider here because we want to be able to access the auth URL
       transport?: SSEClientTransportOptions & {
         authProvider: AgentsOAuthProvider;
@@ -57,17 +62,17 @@ export class MCPClientManager {
       capabilities?: ClientCapabilities;
     } = {}
   ): Promise<{ id: string; authUrl: string | undefined }> {
-    //
-    const id = opts.id ?? crypto.randomUUID();
+    const id = opts.reconnect?.id ?? crypto.randomUUID();
 
     // if we have global auth for the manager AND there's no authProvider override
     // then let's setup an auth provider
     const authProvider: AgentsOAuthProvider | undefined = this.auth
-      ? new KVOAuthClientProvider(
-          this.auth.kv,
+      ? new DurableObjectOAuthClientProvider(
+          this.auth.storage,
           this.name,
           id,
-          `${this.auth.baseCallbackUri}/${id}`
+          `${this.auth.baseCallbackUri}/${id}`,
+          opts.reconnect?.oauthClientId
         )
       : opts.transport?.authProvider;
 
@@ -87,7 +92,10 @@ export class MCPClientManager {
       }
     );
 
-    await this.mcpConnections[id].init();
+    await this.mcpConnections[id].init(
+      opts.reconnect?.oauthCode,
+      opts.reconnect?.oauthClientId
+    );
 
     return {
       id,
@@ -107,6 +115,7 @@ export class MCPClientManager {
   async handleCallbackRequest(req: Request) {
     const url = new URL(req.url);
     const code = url.searchParams.get("code");
+    const clientId = url.searchParams.get("state");
     let serverId = req.url
       .replace(this.auth!.baseCallbackUri, "")
       .split("?")[0];
@@ -114,22 +123,35 @@ export class MCPClientManager {
     if (!code) {
       throw new Error("Unauthorized: no code provided");
     }
+    if (!clientId) {
+      throw new Error("Unauthorized: no state provided");
+    }
 
-    await this.finishAuth(serverId, code);
+    if (this.mcpConnections[serverId] === undefined) {
+      throw new Error(`Could not find serverId: ${serverId}`);
+    }
 
-    return { serverId };
-  }
-
-  async finishAuth(serverId: string, code: string) {
     if (this.mcpConnections[serverId].connectionState !== "authenticating") {
       throw new Error(
         "Failed to authenticate: the client isn't in the `authenticating` state"
       );
     }
-    await this.mcpConnections[serverId].init(code);
+
+    // reconnect to server with authorization
+    const serverUrl = this.mcpConnections[serverId].url.toString();
+    await this.connect(serverUrl, {
+      reconnect: {
+        id: serverId,
+        oauthClientId: clientId,
+        oauthCode: code,
+      },
+    });
+
     if (this.mcpConnections[serverId].connectionState === "authenticating") {
       throw new Error("Failed to authenticate: client failed to initialize");
     }
+
+    return { serverId };
   }
 
   /**

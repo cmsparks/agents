@@ -34,7 +34,7 @@ export class MCPClientConnection {
   serverCapabilities: ServerCapabilities | undefined;
 
   constructor(
-    private url: URL,
+    public url: URL,
     private info: ConstructorParameters<typeof Client>[0],
     private opts: {
       transport: SSEClientTransportOptions;
@@ -57,7 +57,7 @@ export class MCPClientConnection {
    * @param code Optional OAuth code to initialize the connection with if auth hasn't been initialized
    * @returns
    */
-  async init(code?: string) {
+  async init(code?: string, clientId?: string) {
     try {
       const transport = new SSEEdgeClientTransport(
         this.url,
@@ -75,6 +75,7 @@ export class MCPClientConnection {
         return;
       }
       this.connectionState = "failed";
+      throw e;
     }
 
     this.connectionState = "discovering";

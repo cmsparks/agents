@@ -1,15 +1,9 @@
 import { useAgent } from "agents/react";
 import { createRoot } from "react-dom/client";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import "./styles.css";
 import type { State } from "./server";
-
-interface Message {
-  id: string;
-  text: string;
-  timestamp: Date;
-  type: "incoming" | "outgoing";
-}
+import { agentFetch } from "agents/client";
 
 function App() {
   const [isConnected, setIsConnected] = useState(false);
@@ -21,8 +15,14 @@ function App() {
     resources: [],
   });
 
+  // just generate a new DO ID for each new session
+  const agentName = useMemo(() => crypto.randomUUID(), []);
+
   const agent = useAgent({
     agent: "my-agent",
+    // Technically this creates a brand new session every time you load the page
+    // Should be fine because auth is only a popup
+    name: agentName,
     onOpen: () => setIsConnected(true),
     onClose: () => setIsConnected(false),
     onStateUpdate: (state: State) => {
@@ -43,10 +43,18 @@ function App() {
     if (!mcpInputRef.current || !mcpInputRef.current.value.trim()) return;
 
     const serverUrl = mcpInputRef.current.value;
-    fetch(`${agent._pkurl.replace("ws://", "http://")}/add-mcp`, {
-      method: "POST",
-      body: JSON.stringify({ url: serverUrl }),
-    });
+    agentFetch(
+      {
+        host: agent.host,
+        agent: "my-agent",
+        name: agentName,
+        path: "add-mcp",
+      },
+      {
+        method: "POST",
+        body: JSON.stringify({ url: serverUrl }),
+      }
+    );
     setMcpState({
       ...mcpState,
       servers: {
