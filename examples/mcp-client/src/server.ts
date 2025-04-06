@@ -31,21 +31,11 @@ export class MyAgent extends Agent<Env, State> {
     prompts: [],
     resources: [],
   };
-  private mcp_: MCPClientManager | undefined;
 
-  constructor(
-    public ctx: DurableObjectState,
-    public env: Env
-  ) {
-    super(ctx, env);
-  }
-
-  async onStart(): Promise<void> {
-    this.mcp_ = new MCPClientManager("my-agent", "1.0.0", {
-      baseCallbackUri: `${this.env.HOST}/agents/my-agent/${this.name}/callback`,
-      storage: this.ctx.storage,
-    });
-  }
+  mcp = new MCPClientManager("my-agent", "1.0.0", {
+    baseCallbackUri: `${this.env.HOST}/agents/my-agent/${this.name}/callback`,
+    storage: this.ctx.storage,
+  });
 
   setServerState(id: string, state: Server) {
     this.setState({
@@ -64,14 +54,6 @@ export class MyAgent extends Agent<Env, State> {
       tools: this.mcp.listTools(),
       resources: this.mcp.listResources(),
     });
-  }
-
-  get mcp(): MCPClientManager {
-    if (!this.mcp_) {
-      throw new Error("MCPClientManager not initialized");
-    }
-
-    return this.mcp_;
   }
 
   async addMcpServer(url: string): Promise<string> {

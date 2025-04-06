@@ -16,16 +16,12 @@ export class DurableObjectOAuthClientProvider implements AgentsOAuthProvider {
   private authUrl_: string | undefined;
 
   constructor(
-    private storage: DurableObjectStorage,
-    private clientName: string,
-    private sessionId: string,
-    private redirectUrl_: string,
-    public clientId_?: string
+    public storage: DurableObjectStorage,
+    public clientName: string,
+    public sessionId: string,
+    public redirectUrl: string,
+    private clientId_?: string
   ) {}
-
-  get redirectUrl(): string {
-    return this.redirectUrl_;
-  }
 
   get clientMetadata(): OAuthClientMetadata {
     return {

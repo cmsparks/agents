@@ -66,6 +66,13 @@ export class MCPClientManager {
 
     // if we have global auth for the manager AND there's no authProvider override
     // then let's setup an auth provider
+
+    if (this.auth) {
+      console.warn(
+        "Using .auth configuration to generate an oauth provider, this is temporary and will be removed in the next version. Instead use transport.authProvider to provide an auth provider"
+      );
+    }
+
     const authProvider: AgentsOAuthProvider | undefined = this.auth
       ? new DurableObjectOAuthClientProvider(
           this.auth.storage,

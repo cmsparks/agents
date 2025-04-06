@@ -10,25 +10,26 @@ export class SSEEdgeClientTransport extends SSEClientTransport {
    * Creates a new EdgeSSEClientTransport, which overrides fetch to be compatible with the CF workers environment
    */
   constructor(url: URL, options: SSEClientTransportOptions) {
-    // biome-ignore lint/suspicious/noExplicitAny: Overriding fetch, type doesn't matter here
-    const fetchOverride = async (url: any, fetchOpts: any = {}) => {
+    const fetchOverride: typeof fetch = async (
+      fetchUrl: RequestInfo | URL,
+      fetchInit: RequestInit = {}
+    ) => {
       // add auth headers
       const headers = await this.authHeaders();
       const workerOptions = {
-        ...fetchOpts,
+        ...fetchInit,
         headers: {
-          ...(fetchOpts.headers ?? {}),
+          ...fetchInit?.headers,
           ...headers,
         },
       };
 
       // Remove unsupported properties
-      // @ts-ignore
       // biome-ignore lint/performance/noDelete: workaround for workers environment
       delete workerOptions.mode;
 
       // Call the original fetch with fixed options
-      return global.fetch(url, workerOptions);
+      return fetch(fetchUrl, workerOptions);
     };
 
     super(url, {
@@ -49,6 +50,5 @@ export class SSEEdgeClientTransport extends SSEClientTransport {
         };
       }
     }
-    return {};
   }
 }

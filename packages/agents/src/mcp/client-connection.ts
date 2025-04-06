@@ -25,30 +25,25 @@ export class MCPClientConnection {
     | "connecting"
     | "ready"
     | "discovering"
-    | "failed";
+    | "failed" = "connecting";
   instructions?: string;
-  tools: Tool[];
-  prompts: Prompt[];
-  resources: Resource[];
-  resourceTemplates: ResourceTemplate[];
+  tools: Tool[] = [];
+  prompts: Prompt[] = [];
+  resources: Resource[] = [];
+  resourceTemplates: ResourceTemplate[] = [];
   serverCapabilities: ServerCapabilities | undefined;
 
   constructor(
     public url: URL,
     private info: ConstructorParameters<typeof Client>[0],
-    private opts: {
+    private options: {
       transport: SSEClientTransportOptions;
       client: ConstructorParameters<typeof Client>[1];
       capabilities: ClientCapabilities;
     } = { transport: {}, client: {}, capabilities: {} }
   ) {
-    this.client = new Client(info, opts.client);
-    this.client.registerCapabilities(opts.capabilities);
-    this.connectionState = "connecting";
-    this.tools = [];
-    this.prompts = [];
-    this.resources = [];
-    this.resourceTemplates = [];
+    this.client = new Client(info, options.client);
+    this.client.registerCapabilities(options.capabilities);
   }
 
   /**
@@ -61,7 +56,7 @@ export class MCPClientConnection {
     try {
       const transport = new SSEEdgeClientTransport(
         this.url,
-        this.opts.transport
+        this.options.transport
       );
       if (code) {
         await transport.finishAuth(code);

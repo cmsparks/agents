@@ -5,6 +5,13 @@ import "./styles.css";
 import type { State } from "./server";
 import { agentFetch } from "agents/client";
 
+let sessionId = localStorage.getItem("sessionId");
+if (!sessionId) {
+  sessionId = crypto.randomUUID();
+  localStorage.setItem("sessionId", sessionId);
+}
+// TODO: clear sessionId on logout
+
 function App() {
   const [isConnected, setIsConnected] = useState(false);
   const mcpInputRef = useRef<HTMLInputElement>(null);
@@ -15,14 +22,9 @@ function App() {
     resources: [],
   });
 
-  // just generate a new DO ID for each new session
-  const agentName = useMemo(() => crypto.randomUUID(), []);
-
   const agent = useAgent({
     agent: "my-agent",
-    // Technically this creates a brand new session every time you load the page
-    // Should be fine because auth is only a popup
-    name: agentName,
+    name: sessionId!,
     onOpen: () => setIsConnected(true),
     onClose: () => setIsConnected(false),
     onStateUpdate: (state: State) => {
@@ -47,7 +49,7 @@ function App() {
       {
         host: agent.host,
         agent: "my-agent",
-        name: agentName,
+        name: sessionId!,
         path: "add-mcp",
       },
       {
