@@ -32,10 +32,22 @@ export class MyAgent extends Agent<Env, State> {
     resources: [],
   };
 
-  mcp = new MCPClientManager("my-agent", "1.0.0", {
-    baseCallbackUri: `${this.env.HOST}/agents/my-agent/${this.name}/callback`,
-    storage: this.ctx.storage,
-  });
+  private mcp_: MCPClientManager | undefined;
+
+  get mcp(): MCPClientManager {
+    if (!this.mcp_) {
+      throw new Error("MCPClientManager not initialized");
+    }
+
+    return this.mcp_;
+  }
+
+  onStart() {
+    this.mcp_ = new MCPClientManager("my-agent", "1.0.0", {
+      baseCallbackUri: `${this.env.HOST}/agents/my-agent/${this.name}/callback`,
+      storage: this.ctx.storage,
+    });
+  }
 
   setServerState(id: string, state: Server) {
     this.setState({
