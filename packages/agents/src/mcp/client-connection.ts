@@ -216,7 +216,12 @@ export class MCPClientConnection {
         .listResourceTemplates({
           cursor: templatesResult.nextCursor,
         })
-        .catch(capabilityErrorHandler({ resourceTemplates: [] }, "resources/templates/list"));
+        .catch(
+          capabilityErrorHandler(
+            { resourceTemplates: [] },
+            "resources/templates/list"
+          )
+        );
       templatesAgg = templatesAgg.concat(templatesResult.resourceTemplates);
     } while (templatesResult.nextCursor);
     return templatesAgg;
