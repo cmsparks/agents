@@ -230,9 +230,9 @@ export class MCPClientConnection {
 
 function capabilityErrorHandler<T>(empty: T, method: string) {
   return (e: { code: number }) => {
-    // server is badly behaved and returning invalid capabilities
+    // server is badly behaved and returning invalid capabilities. This commonly occurs for resource templates
     if (e.code === -32601) {
-      console.warn(
+      console.error(
         `The server advertised support for the capability ${method.split("/")[0]}, but returned "Method not found" for '${method}'.`
       );
       return empty;
